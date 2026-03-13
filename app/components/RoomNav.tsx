@@ -1,6 +1,6 @@
 "use client";
 
-import { rooms } from "@/lib/rooms";
+import { ROOMS } from "@/lib/rooms";
 
 interface RoomNavProps {
   currentRoom: string;
@@ -10,7 +10,7 @@ interface RoomNavProps {
 export default function RoomNav({ currentRoom, onRoomChange }: RoomNavProps) {
   return (
     <div className="flex gap-2">
-      {Object.entries(rooms).map(([id, room]) => (
+      {Object.entries(ROOMS).map(([id, room]) => (
         <button
           key={id}
           onClick={() => onRoomChange(id)}

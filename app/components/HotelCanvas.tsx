@@ -3,7 +3,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { Application, Graphics, Container, Text, TextStyle } from "pixi.js";
 import { TILE_W, TILE_H, tileToScreen, screenToTile } from "@/lib/iso";
-import { rooms, getWalkableTiles } from "@/lib/rooms";
+import { ROOMS, getWalkableTiles } from "@/lib/rooms";
 import { Agent, defaultAgents } from "@/lib/agents";
 
 interface HotelCanvasProps {
@@ -25,7 +25,7 @@ export default function HotelCanvas({ roomId, onAgentClick }: HotelCanvasProps) 
   roomIdRef.current = roomId;
 
   const resetAgents = useCallback(() => {
-    const room = rooms[roomIdRef.current];
+    const room = ROOMS[roomIdRef.current];
     const walkable = getWalkableTiles(room.grid);
     agentsRef.current.forEach((agent, i) => {
       const tile = walkable[i % walkable.length];
@@ -146,7 +146,7 @@ export default function HotelCanvas({ roomId, onAgentClick }: HotelCanvasProps) 
 
       // Game loop
       app.ticker.add(() => {
-        const room = rooms[roomIdRef.current];
+        const room = ROOMS[roomIdRef.current];
         const grid = room.grid;
         const walkable = getWalkableTiles(grid);
         const offsetX = app.screen.width / 2;

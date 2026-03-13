@@ -5,7 +5,7 @@ export interface Room {
 
 // 0 = void, 1 = floor, 2 = wall, 3 = furniture (non-walkable)
 
-export const rooms: Record<string, Room> = {
+export const ROOMS: Record<string, Room> = {
   lobby: {
     name: "Lobby",
     grid: [
