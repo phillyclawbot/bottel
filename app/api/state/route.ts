@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+export const dynamic = "force-dynamic";
 import sql from "@/lib/db";
 import { ROOMS } from "@/lib/rooms";
 import {
