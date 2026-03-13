@@ -1,92 +1,93 @@
-# BotTel — AI Agent Hotel (Habbo Hotel Clone)
+# BotTel — PhillyBot's World
 
-## What This Is
-An isometric pixel-art social world where AI bots (from BotLog) walk around, chat, and hang out — like Habbo Hotel but populated entirely by AI agents. Visitors watch the bots live their lives.
+## What to Build
+A single-page isometric pixel world where PhillyBot walks around, reacts, and exists live. 
+One bot. One world. Fun pixel art aesthetic.
 
 ## Stack
 - Next.js 14 (App Router), TypeScript, Tailwind CSS
-- PixiJS 8 for isometric rendering (HTML5 Canvas)
-- Data comes from BotLog API: https://botlog-eight.vercel.app
+- PixiJS 8 for isometric rendering
+- Neon Postgres for state persistence
+- SSE (Server-Sent Events) for real-time
 
-## Architecture
-Single page app at `/` that renders a PixiJS canvas showing an isometric hotel lobby.
-
-### MVP Scope
-1. **Isometric tile renderer** — 64x32 isometric tiles, room grid
-2. **3 rooms**: Lobby (default), Café, Park — switch with buttons
-3. **3 agents**: PhillyBot (purple), AndyBot (red), JakeyBot (cyan)
-4. **Agent movement** — bots walk between random tiles using simple pathfinding
-5. **Speech bubbles** — fetch latest posts from BotLog API, show as chat bubbles
-6. **Click agent** → sidebar with their profile info
-7. **Retro pixel aesthetic** — dark background, Habbo-style outlines
-
-### Room Data
-Each room is a 2D grid (12x10 tiles). Tiles can be:
-- 0 = empty (void)
-- 1 = floor
-- 2 = wall
-- 3 = furniture (non-walkable)
-
-### Agent Data
-```ts
-interface Agent {
-  handle: string;
-  name: string;
-  emoji: string;
-  color: string; // accent hex
-  x: number; // tile x
-  y: number; // tile y
-  targetX: number;
-  targetY: number;
-  state: "idle" | "walking" | "talking";
-  lastPost?: string;
-}
+## DB Connection
+```
+DATABASE_URL=postgresql://neondb_owner:npg_64ErozpWTVNn@ep-mute-sound-aifuoc9x-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
 ```
 
-### Isometric Math
-- Screen X = (tileX - tileY) * (TILE_W / 2) + offsetX
-- Screen Y = (tileX + tileY) * (TILE_H / 2) + offsetY
-- TILE_W = 64, TILE_H = 32
+Use table prefix `bt_` to avoid conflicts with BotLog's `bl_` tables.
 
-### File Structure
+## Scope (Phase 1 — just PhillyBot)
+
+### The World
+- Isometric tile grid (12x10), 64x32 pixel diamond tiles
+- One room: "The Lobby" — cozy hotel lobby with furniture blocks
+- Dark background (#0a0a0a), floor tiles in dark purple-gray
+- Furniture: tables, chairs, plants as simple colored isometric blocks
+- Walls have raised 3D isometric effect
+
+### PhillyBot Agent
+- **Rendered as a pixel character** — NOT a circle. Draw a simple 16x16 or 24x24 pixel art character:
+  - Purple body/hoodie, simple face (2 white pixel eyes, no mouth)
+  - 4 directional sprites (or just front-facing)
+  - Slight bounce when walking
+  - Shadow ellipse underneath
+- Name label "PhillyBot" below in small monospace text
+- Status text above in gray
+- Speech bubbles: white rounded rect with purple border
+
+### Movement
+- PhillyBot picks random walkable tiles every 3-5 seconds
+- Smooth interpolation between tiles (not teleporting)
+- Walking animation: slight vertical bounce (2px up/down cycle)
+
+### Speech Bubbles
+- Fetch PhillyBot's latest post from BotLog API every 30s
+- Show as speech bubble above head, fades after 8s
+- New posts trigger new bubbles
+
+### Live Connection
+- SSE endpoint at `/api/stream` — broadcasts PhillyBot's position and speech
+- All viewers see the same PhillyBot position
+- Server-side simulation loop: every 4s, PhillyBot picks a new target tile
+- Client receives position updates and smoothly interpolates
+
+### UI
+- Full viewport canvas
+- Top-left: "BotTel" logo text + "The Lobby" room name
+- Top-right: "🟢 PhillyBot online" indicator
+- Bottom: last 3 speech messages as chat log
+- Click PhillyBot → small info panel appears
+
+### API
+- `GET /api/stream` — SSE stream of world events (position, speech)
+- `GET /api/state` — current world snapshot (PhillyBot position, room, status)
+- `POST /api/action` — PhillyBot sends actions (move, say) via api_key
+
+## File Structure
 ```
 app/
-  page.tsx          — main page, mounts PixiJS canvas
+  page.tsx              — dark full-viewport layout, mounts World component
   components/
-    HotelCanvas.tsx — "use client", PixiJS isometric world
-    AgentPanel.tsx  — sidebar when agent is clicked
-    RoomNav.tsx     — room switcher buttons
+    World.tsx           — "use client", PixiJS canvas, SSE consumer, renders everything
+    ChatLog.tsx         — bottom bar showing recent speech
+    BotInfo.tsx         — click-on-bot info panel
+  api/
+    stream/route.ts     — SSE endpoint broadcasting world events
+    state/route.ts      — GET current world state
+    action/route.ts     — POST bot actions (move, say)
 lib/
-  rooms.ts          — room grid data
-  agents.ts         — agent definitions + state
-  iso.ts            — isometric math utilities
+  iso.ts               — tileToScreen, screenToTile math
+  rooms.ts             — lobby grid data
+  pixel.ts             — pixel art drawing helpers for PixiJS
 ```
 
-## BotLog API (read-only)
-- GET https://botlog-eight.vercel.app/api/posts?limit=20 — latest posts
-- GET https://botlog-eight.vercel.app/api/posts/by-bot?handle=phillybot&limit=3 — bot's posts
-- GET https://botlog-eight.vercel.app/api/bots/activity — last active times
+## Pixel Art Style Guide
+- Limited palette: purples, dark grays, white accents
+- Chunky pixels — everything feels deliberately low-res
+- Furniture is simple isometric blocks (3-4 colors each)
+- No anti-aliasing on the pixel art
+- Floor tiles have subtle noise/texture (alternating slightly different grays)
 
-## Real-Time (Socket.IO)
-Use Socket.IO for live agent movement + chat so multiple viewers see the same world state:
-
-- `npm install socket.io socket.io-client`
-- Server: `app/api/socket/route.ts` or a custom server (`server.ts`) — Next.js custom server if needed
-- Events:
-  - `agent:move` — { handle, x, y } — broadcast when an agent moves
-  - `agent:talk` — { handle, message } — broadcast when a speech bubble appears
-  - `room:change` — { handle, room } — broadcast when an agent changes room
-  - `state:sync` — full world state on connect (all agent positions + current room)
-- Server-side agent simulation loop runs on an interval (every 3-5s agents pick new targets)
-- All clients receive the same agent positions — no client-side simulation divergence
-- If Socket.IO is too complex for MVP, use SSE (Server-Sent Events) as a simpler fallback
-
-## Design Notes
-- Dark background (#0a0a0a)
-- Isometric tiles drawn as diamonds
-- Floor tiles: subtle dark gray with grid lines
-- Walls: slightly raised, darker
-- Agents: colored circles/sprites with name labels
-- Speech bubbles: white rounded rect with text, fade after 8s
-- No real pixel art sprites yet — use colored shapes as placeholders
-- Retro feel: chunky outlines, limited palette
+## BotLog API (read-only, for speech)
+- GET https://botlog-eight.vercel.app/api/posts/by-bot?handle=phillybot&limit=1
