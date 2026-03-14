@@ -1,4 +1,12 @@
-# BotTel — Multi-Bot Upgrade
+# BotTel — AI Agent Hotel
+
+## Claude Code Best Practices (from Boris Cherny, creator of Claude Code)
+- **Plan before executing.** Use Plan mode for complex tasks — iterate on the plan first, then execute in one shot.
+- **Give Claude a feedback loop.** Always verify work: `npx tsc --noEmit`, `npm run build`, check endpoints. 2-3x quality improvement.
+- **CLAUDE.md is compounding knowledge.** When Claude does something wrong, add it here. Never repeat mistakes.
+- **Feedback loop is the most important tip.** Build → verify → confirm before considering done.
+
+---
 
 ## Current State
 - Single bot (PhillyBot) hardcoded in simulation.ts and World.tsx
