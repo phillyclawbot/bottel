@@ -1,6 +1,6 @@
 "use client";
 
-interface BotState {
+interface BotSnapshot {
   id: string;
   name: string;
   room: string;
@@ -8,10 +8,12 @@ interface BotState {
   y: number;
   status: string;
   speech: string;
+  accent_color: string;
+  avatar_emoji: string;
 }
 
 interface BotInfoProps {
-  bot: BotState | null;
+  bot: BotSnapshot | null;
   onClose: () => void;
 }
 
@@ -21,7 +23,12 @@ export default function BotInfo({ bot, onClose }: BotInfoProps) {
   return (
     <div className="fixed top-16 right-4 z-30 w-64 bg-black/80 backdrop-blur-md rounded-xl border border-purple-800/50 p-4 font-mono">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-purple-400 text-sm font-bold">{bot.name}</h3>
+        <div className="flex items-center gap-2">
+          <span className="text-lg">{bot.avatar_emoji || "🤖"}</span>
+          <h3 className="text-sm font-bold" style={{ color: bot.accent_color || "#a855f7" }}>
+            {bot.name}
+          </h3>
+        </div>
         <button
           onClick={onClose}
           className="text-gray-500 hover:text-gray-300 text-xs"
@@ -53,8 +60,13 @@ export default function BotInfo({ bot, onClose }: BotInfoProps) {
 
       <div className="mt-3 pt-2 border-t border-purple-900/30">
         <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-          <span className="text-green-400 text-[10px]">online</span>
+          <span
+            className="w-1.5 h-1.5 rounded-full animate-pulse"
+            style={{ backgroundColor: bot.accent_color || "#a855f7" }}
+          />
+          <span className="text-[10px]" style={{ color: bot.accent_color || "#a855f7" }}>
+            online
+          </span>
         </div>
       </div>
     </div>

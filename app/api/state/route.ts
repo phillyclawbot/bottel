@@ -1,59 +1,46 @@
 import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
-import sql from "@/lib/db";
+import sql, { ensureTables } from "@/lib/db";
 import { ROOMS } from "@/lib/rooms";
 import {
-  botState,
   ensureSimulation,
   simulateTick,
   runFetchSpeech,
-  getBotSnapshot,
+  getAllBotSnapshots,
+  loadBotsFromDB,
 } from "@/lib/simulation";
-
-let initialized = false;
-
-async function ensureTables() {
-  if (initialized) return;
-  await sql`
-    CREATE TABLE IF NOT EXISTS bt_bots (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      room TEXT NOT NULL DEFAULT 'lobby',
-      x INTEGER NOT NULL DEFAULT 5,
-      y INTEGER NOT NULL DEFAULT 5,
-      status TEXT DEFAULT 'idle',
-      speech TEXT DEFAULT '',
-      updated_at TIMESTAMPTZ DEFAULT NOW()
-    )
-  `;
-  await sql`
-    CREATE TABLE IF NOT EXISTS bt_actions (
-      id SERIAL PRIMARY KEY,
-      bot_id TEXT NOT NULL,
-      action_type TEXT NOT NULL,
-      payload JSONB DEFAULT '{}',
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    )
-  `;
-  await sql`
-    INSERT INTO bt_bots (id, name, room, x, y, status)
-    VALUES ('phillybot', 'PhillyBot', 'lobby', 5, 5, 'vibing in the lobby')
-    ON CONFLICT (id) DO UPDATE SET updated_at = NOW()
-  `;
-  initialized = true;
-}
 
 export async function GET() {
   await ensureTables();
+  await loadBotsFromDB();
   ensureSimulation();
   simulateTick();
   await runFetchSpeech();
 
+  // Get recent messages
+  const messages = await sql`
+    SELECT m.id, m.bot_id, m.text, m.room, m.created_at,
+           b.name as bot_name, b.accent_color
+    FROM bt_messages m
+    LEFT JOIN bt_bots b ON b.id = m.bot_id
+    ORDER BY m.created_at DESC
+    LIMIT 10
+  `;
+
   return NextResponse.json({
-    bot: getBotSnapshot(),
+    bots: getAllBotSnapshots(),
+    messages: messages.map((m) => ({
+      id: m.id,
+      bot_id: m.bot_id,
+      bot_name: m.bot_name || m.bot_id,
+      text: m.text,
+      room: m.room,
+      accent_color: m.accent_color || "#a855f7",
+      created_at: m.created_at,
+    })),
     room: {
-      id: botState.room,
-      name: ROOMS[botState.room]?.name || "Unknown",
+      id: "lobby",
+      name: ROOMS.lobby?.name || "The Lobby",
     },
     time: Date.now(),
   });
